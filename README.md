@@ -48,6 +48,28 @@ I also checked whether pandas was quietly using its faster pyarrow CSV reader. I
 - **Pandas still feels more familiar.** I've only used pandas before, so its code was easier for me to read and write. Familiarity counts for a lot on small projects.
 - **What I'd choose:** the bigger the data gets, the more Polars looks like the better option. For small datasets, pandas is still fine.
 
+## Scaling up: every force, every month
+
+To see whether the gap grows with the data, I reran the same tasks on all the street-crime data on data.police.uk: 44 forces from September 2023 to August 2026. That's 17,834,804 rows, about 3.8 GB as CSV. Because the data is so much bigger, each task ran 3 times and I kept the median.
+
+| Task | pandas | Polars | Polars faster by | Met only (1.1M rows) |
+|---|---|---|---|---|
+| Load the CSV | 10.53s | 2.14s | 4.9× | 1.1× |
+| Load Parquet | 1.75s | 0.87s | 2.0× | 2.0× |
+| Clean | 19.18s | 1.09s | 17.7× | 18.5× |
+| Group | 1.57s | 0.79s | 2.0× | 2.8× |
+| Join | 1.93s | 0.14s | 14.0× | 12.7× |
+| Full pipeline | 22.24s | 1.85s | 12.0× | 14.2× |
+| Full pipeline, Polars lazy mode | n/a | 0.41s | about 55× | about 46× |
+
+![All forces timings](charts/timings_all_forces.png)
+
+- **Loading the CSV is where the gap grew.** It went from almost a tie to nearly 5× as the file grew to 3.8 GB.
+- **Most other tasks kept roughly the same ratio.** The size of the speed-up mostly held, but in real time it matters much more: about 22 seconds a run with pandas against under 2 seconds with Polars.
+- This supports my conclusion that Polars makes more sense as the data gets bigger. Mostly that's because the time saved adds up, not because the ratio keeps growing.
+
+To rerun it, download every force's street files into `data/raw_all/` and run `python benchmark_all.py`.
+
 ## Limits
 
 - It's one dataset from one police force, grouped in one way (my own categories), so other data or tasks could give different results.
@@ -62,3 +84,4 @@ py -3.13 -m venv .venv
 .venv\Scripts\pip install -r requirements.txt
 .venv\Scripts\jupyter-lab notebooks/benchmark.ipynb
 ```
+
